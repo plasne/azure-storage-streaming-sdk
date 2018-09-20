@@ -1,0 +1,24 @@
+{
+  "name": "streams",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "azure-storage": "^2.10.1",
+    "es6-promise-pool": "^2.5.0",
+    "readable-stream": "^3.0.3",
+    "ts-stream": "^1.0.1",
+    "xmldom": "^0.1.27",
+    "xpath": "0.0.27"
+  },
+  "devDependencies": {
+    "@machinomy/types-readable-stream": "git+https://github.com/machinomy/types-readable-stream.git",
+    "@types/node": "^10.10.1",
+    "@types/xmldom": "^0.1.29"
+  },
+  "description": ""
+}
