@@ -15,6 +15,7 @@ const azs = __importStar(require("azure-storage"));
 const util = __importStar(require("util"));
 const Streams_1 = require("./Streams");
 const PromiseImposer_1 = __importDefault(require("./PromiseImposer"));
+const argumentor_1 = __importDefault(require("./argumentor"));
 class AzureBlobStreamWriteOperation extends PromiseImposer_1.default {
     constructor(mode, filename, content) {
         super();
@@ -296,22 +297,12 @@ class AzureBlob {
     }
     list() {
         // get arguments
-        let prefix = undefined;
-        let out_options = {};
-        if (arguments[0] && typeof arguments[0] === "object")
-            out_options = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "object")
-            out_options = arguments[1];
-        if (arguments[2] && typeof arguments[2] === "object")
-            out_options = arguments[2];
-        if (arguments[0] && typeof arguments[0] === "string")
-            prefix = arguments[0];
-        if (arguments[0] && typeof arguments[0] === "function")
-            out_options.transform = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "function")
-            out_options.transform = arguments[1];
+        let { 0: prefix, 1: transform, 2: options } = argumentor_1.default(["string", "function", "object"], ...arguments);
+        options = options || {};
+        if (transform)
+            options.transform = transform;
         // immediately funnel everything provided
-        const streams = this.listStream({}, out_options);
+        const streams = this.listStream({}, options);
         streams.in.push(new AzureBlobStreamListOperation(prefix));
         streams.in.end();
         return streams.out;
@@ -339,15 +330,8 @@ class AzureBlob {
         return new Promise((resolve, reject) => {
             try {
                 // get arguments
-                let prefix = undefined;
-                let pattern = undefined;
                 const options = {};
-                if (arguments[0] && typeof arguments[0] === "string")
-                    prefix = arguments[0];
-                if (arguments[0] && arguments[0] instanceof RegExp)
-                    pattern = arguments[0];
-                if (arguments[1] && arguments[1] instanceof RegExp)
-                    pattern = arguments[1];
+                let { 0: prefix, 1: pattern } = argumentor_1.default(["string", RegExp], ...arguments);
                 // define the transform
                 options.transform = (data) => {
                     if (pattern) {
@@ -380,6 +364,9 @@ class AzureBlob {
                 reject(error);
             }
         });
+    }
+    listAll() {
+        return this.listFiltered();
     }
     // create the container if it doesn't already exist
     createContainerIfNotExists() {

@@ -1,20 +1,65 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const AzureBlob_1 = __importDefault(require("./AzureBlob"));
+//import AzureBlob from "./AzureBlob";
+//import { StreamTransform, StreamOptions } from "./Streams";
+//import * as azs from "azure-storage";
 //import * as util from "util";
 //import * as xpath from "xpath";
 //import * as dom from "xmldom";
-const blobs = new AzureBlob_1.default({
-    account: "prossapdepot",
-    key: "9xsijr5ok6B+LzWbIOxARxAj6iEqqPyvGOZToL+A8LN8v5PCmiaKVivLZVBVXAyEU6B9smoY9vQon8vpcIWfPg==",
+//import argumentor from "./argumentor";
+/*
+const blobs = new AzureBlob({
+    account:  "prossapdepot",
+    key:       "9xsijr5ok6B+LzWbIOxARxAj6iEqqPyvGOZToL+A8LN8v5PCmiaKVivLZVBVXAyEU6B9smoY9vQon8vpcIWfPg==",
     container: "input"
 });
-blobs.listAsync("20180910T151500/").then(blobbers => {
+
+blobs.listAsync<azs.BlobService.BlobResult>("20180910T151500/").then(blobbers => {
     console.log(blobbers);
 });
+*/
+/*
+interface monkey {
+    type: "monkey"
+}
+
+interface dog {
+    type: "dog"
+}
+
+function test(): void;
+function test(a: monkey): void;
+function test(b: dog): void;
+function test(a: StreamTransform<string, string>, b: StreamOptions<string, string>): void;
+function test() {
+    const { 0: options, 1: transform }: { 0?: StreamOptions<string, string>, 1?: StreamTransform<string, string> } = argumentor([ "object", "function" ], ...arguments);
+    console.log("  " + options);
+    console.log("  " + transform);
+}
+
+console.log("test 1:");
+test();
+
+console.log("test 2:");
+test({
+    transform: data => {
+        return data;
+    }
+});
+
+console.log("test 3:");
+test(data => {
+    return data;
+});
+
+console.log("test 4:");
+test(data => {
+    return data;
+}, {
+    transform: data => {
+        return data;
+    }
+});
+*/
 /*
 const a = 1;
 

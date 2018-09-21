@@ -4,6 +4,7 @@ import * as azs from "azure-storage";
 import * as util from "util";
 import { ReadableStream, WriteableStream, StreamOptions, StreamTransform } from "./Streams";
 import PromiseImposter from "./PromiseImposer";
+import argumentor from "./argumentor";
 
 export type formats = "json" | "text";
 
@@ -404,28 +405,23 @@ export default class AzureBlob {
     }
 
     // list the blobs via a streaming pattern
-    public list<T>(): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(prefix: string): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(transform: StreamTransform<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(options: StreamOptions<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(transform: StreamTransform<azs.BlobService.BlobResult, T>, options: StreamOptions<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, T>, options: StreamOptions<azs.BlobService.BlobResult, T>): ReadableStream<azs.BlobService.BlobResult, T>;
-    public list<T>(): ReadableStream<azs.BlobService.BlobResult, T> {
+    public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out> {
 
         // get arguments
-        let prefix: string | undefined = undefined;
-        let out_options: StreamOptions<azs.BlobService.BlobResult, T> = {};
-        if (arguments[0] && typeof arguments[0] === "object") out_options = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "object") out_options = arguments[1];
-        if (arguments[2] && typeof arguments[2] === "object") out_options = arguments[2];
-        if (arguments[0] && typeof arguments[0] === "string") prefix = arguments[0];
-        if (arguments[0] && typeof arguments[0] === "function") out_options.transform = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "function") out_options.transform = arguments[1];
+        let { 0: prefix, 1: transform, 2: options }: { 0?: string, 1?: StreamTransform<azs.BlobService.BlobResult, Out>, 2?: StreamOptions<azs.BlobService.BlobResult, Out> } = argumentor([ "string", "function", "object" ], ...arguments);
+        options = options || {};
+        if (transform) options.transform = transform;
 
         // immediately funnel everything provided
-        const streams = this.listStream<AzureBlobStreamListOperation, T>({}, out_options);
+        const streams = this.listStream<AzureBlobStreamListOperation, Out>({}, options);
         streams.in.push(new AzureBlobStreamListOperation(prefix));
         streams.in.end();
         return streams.out;
@@ -433,20 +429,20 @@ export default class AzureBlob {
     }
 
     // list the blobs via a Promise pattern
-    public listAsync<T>(): Promise<T[]>;
-    public listAsync<T>(prefix: string): Promise<T[]>;
-    public listAsync<T>(transform: StreamTransform<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(options: StreamOptions<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(transform: StreamTransform<azs.BlobService.BlobResult, T>, options: StreamOptions<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, T>, options: StreamOptions<azs.BlobService.BlobResult, T>): Promise<T[]>;
-    public listAsync<T>(): Promise<T[]> {
-        return new Promise<T[]>((resolve, reject) => {
+    public listAsync<Out = azs.BlobService.BlobResult>(): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(): Promise<Out[]> {
+        return new Promise<Out[]>((resolve, reject) => {
             try {
 
                 // start querying
-                const stream: ReadableStream<azs.BlobService.BlobResult, T> = this.list.call(this, ...arguments);
+                const stream: ReadableStream<azs.BlobService.BlobResult, Out> = this.list.call(this, ...arguments);
 
                 // only allow up to maxBuffer
                 stream.on("paused", () => {
@@ -464,6 +460,7 @@ export default class AzureBlob {
         });
     }
 
+    public listFiltered(): Promise<azs.BlobService.BlobResult[]>
     public listFiltered(prefix: string): Promise<azs.BlobService.BlobResult[]>
     public listFiltered(pattern: RegExp): Promise<azs.BlobService.BlobResult[]>
     public listFiltered(prefix: string, pattern: RegExp): Promise<azs.BlobService.BlobResult[]>
@@ -472,12 +469,8 @@ export default class AzureBlob {
             try {
 
                 // get arguments
-                let prefix: string | undefined = undefined;
-                let pattern: RegExp | undefined = undefined;
                 const options: StreamOptions<azs.BlobService.BlobResult, azs.BlobService.BlobResult> = {};
-                if (arguments[0] && typeof arguments[0] === "string") prefix = arguments[0];
-                if (arguments[0] && arguments[0] instanceof RegExp) pattern = arguments[0];
-                if (arguments[1] && arguments[1] instanceof RegExp) pattern = arguments[1];
+                let { 0: prefix, 1: pattern }: { 0?: string, 1?: RegExp } = argumentor([ "string", RegExp ], ...arguments);
 
                 // define the transform
                 options.transform = (data: azs.BlobService.BlobResult) => {
@@ -513,6 +506,11 @@ export default class AzureBlob {
             }
         });
     }
+
+    public listAll(): Promise<azs.BlobService.BlobResult[]> {
+        return this.listFiltered();
+    }
+
 
     // create the container if it doesn't already exist
     public createContainerIfNotExists() {
