@@ -8,3 +8,5 @@
 //import { overarg, overargFunc } from "overarg";
 //import { AzureBlob } from "./index";
 
+//const c = new AzureBlob()
+//c.listFiltered()

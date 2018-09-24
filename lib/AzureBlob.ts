@@ -1,4 +1,7 @@
 
+// notes:
+// There is no good way to document overloads: https://github.com/Microsoft/TypeScript/issues/407
+
 // includes
 import * as azs from "azure-storage";
 import * as util from "util";
@@ -41,12 +44,12 @@ httpsAgent.maxSockets = 20;
 /** Specify the type of operation that will be performed. */
 type AzureBlobWriteOperationTypes = "append" | "block" | "delete";
 
-export class AzureBlobWriteOperation extends PromiseImposter {
+export class AzureBlobCommitOperation extends PromiseImposter {
 
     public readonly type:      AzureBlobWriteOperationTypes;
     public readonly container: string;
     public readonly filename:  string;
-    public readonly content?:  string;
+    public          content?:  string;
 
     /** This class designates a write operation that can be queued, streamed, etc.
      * After creating an object, you may be alerted when its operation is complete using .then(),
@@ -60,6 +63,11 @@ export class AzureBlobWriteOperation extends PromiseImposter {
         this.content = content;
     }
 
+}
+
+type AzureBlobCommitStreams<T, U> = {
+    in:  WriteableStream<T, AzureBlobCommitOperation>,
+    out: ReadableStream<AzureBlobCommitOperation, U>
 }
 
 export class AzureBlobLoadOperation extends PromiseImposter {
@@ -112,19 +120,44 @@ export class AzureBlob {
 
     public readonly service:    azs.BlobService;
 
-    public writeStream<T>(): WriteableStream<T, AzureBlobWriteOperation>;
-    public writeStream<T>(transform: StreamTransform<T, AzureBlobWriteOperation>): WriteableStream<T, AzureBlobWriteOperation>;
-    public writeStream<T>(options: StreamOptions<T, AzureBlobWriteOperation>): WriteableStream<T, AzureBlobWriteOperation>;
-    public writeStream<T>(transform: StreamTransform<T, AzureBlobWriteOperation>, options: StreamOptions<T, AzureBlobWriteOperation>): WriteableStream<T, AzureBlobWriteOperation>;
-    public writeStream<T>(): WriteableStream<T, AzureBlobWriteOperation> {
+    /**
+This method creates an *in* and *out* stream. You can pump AzureBlobCommitOperation objects
+in and then monitor the results in the output stream.
+
+Here is an example of delete operations in TypeScript, including converting an array of strings
+into operations:
+
+```typescript
+const streams = commitStream<string, AzureBlobCommitOperation>({
+    transform: () => {
+        return new AzureBlobCommitOperation("delete", "MyContainer", filename).then(() => {
+            console.log(`${filename} deleted successfully.`);
+        }, error => {
+            // you could handle errors this way
+        });
+    }
+});
+streams.in.push("MyFile1");
+streams.in.push("MyFile2");
+streams.in.end();
+streams.out.on("end", () => {
+    // both files are deleted
+});
+```
+     */
+    public commitStream<In = AzureBlobCommitOperation, Out = AzureBlobCommitOperation>(): AzureBlobCommitStreams<In, Out>;
+    public commitStream<In = AzureBlobCommitOperation, Out = AzureBlobCommitOperation>(in_options: StreamOptions<In, AzureBlobCommitOperation>, out_options: StreamOptions<AzureBlobCommitOperation, Out>): AzureBlobCommitStreams<In, Out>;
+    public commitStream<In = AzureBlobCommitOperation, Out = AzureBlobCommitOperation>(): AzureBlobCommitStreams<In, Out> {
 
         // get arguments
-        const transform = overarg<StreamTransform<T, AzureBlobWriteOperation>>("function", ...arguments);
-        const options = overarg<StreamOptions<T, AzureBlobWriteOperation>>("object", ...arguments) || {};
-        if (transform) options.transform = transform;
+        const in_options: StreamOptions<In, AzureBlobCommitOperation> = arguments[0] || {};
+        const out_options: StreamOptions<AzureBlobCommitOperation, Out> = arguments[1] || {};
 
-        // create stream
-        const stream = new WriteableStream<T, AzureBlobWriteOperation>(options);
+        // create the streams
+        const streams: AzureBlobCommitStreams<In, Out> = {
+            in:  new WriteableStream<In, AzureBlobCommitOperation>(in_options),
+            out: new ReadableStream<AzureBlobCommitOperation, Out>(out_options)
+        };
 
         // promisify
         const createBlockBlobFromText: (container: string, blob: string, text: string) => Promise<azs.BlobService.BlobResult> =
@@ -136,20 +169,20 @@ export class AzureBlob {
         const deleteBlob: (container: string, blob: string) => Promise<void> =
             util.promisify(azs.BlobService.prototype.deleteBlob).bind(this.service);
 
-        // produce promises to save the files
-        stream.processSelf(() => {
-
-            const op = stream.buffer.pop();
+        // produce promises to commit the operations
+        streams.out.processFrom(streams.in, () => {
+            const op = streams.in.buffer.pop();
 
             // process a block write
             if (op && op.type === "block" && op.content) {
                 return createBlockBlobFromText(op.container, op.filename, op.content)
                 .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                 .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
 
@@ -165,10 +198,11 @@ export class AzureBlob {
                 })
                 .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                 .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
 
@@ -177,10 +211,11 @@ export class AzureBlob {
                 return deleteBlob(op.container, op.filename)
                 .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                 .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
 
@@ -189,41 +224,90 @@ export class AzureBlob {
 
         });
 
-        return stream;
+        return streams;
     }
 
-    public write<In>(operation: In): WriteableStream<In, AzureBlobWriteOperation>;
-    public write<In>(operations: In[]): WriteableStream<In, AzureBlobWriteOperation>;
-    public write<In>(operation: In, options: StreamOptions<In, AzureBlobWriteOperation>): WriteableStream<In, AzureBlobWriteOperation>;
-    public write<In>(operations: In[], options: StreamOptions<In, AzureBlobWriteOperation>): WriteableStream<In, AzureBlobWriteOperation>;
-    public write<In>(): WriteableStream<In, AzureBlobWriteOperation> {
+    /**
+Use this method by specifying what to commit and it will return an output stream to manage the
+commits. Events for "data" (operation) and "error" (error, operation) are raised, but you can
+also act on the individual commits using the .then(), .catch(), and .finally() methods of each
+AzureBlobCommitOperation.
+
+Here is an example of delete operations in TypeScript, including converting an array of strings
+into operations:
+
+```typescript
+commit<string>([ "MyFile1", "MyFile2" ], {
+    transform: () => {
+        return new AzureBlobCommitOperation("delete", "MyContainer", filename).then(() => {
+            console.log(`${filename} deleted successfully.`);
+        }, error => {
+            // you could handle errors this way
+        });
+    }
+})
+.on("data", operation => {
+    // operation is the AzureBlobCommitOperation that was successful
+})
+.on("error", (error, operation) => {
+    // you could also handle errors this way
+})
+.on("end") => {
+    // all operations are done
+});
+```
+     */
+    public commit<In = AzureBlobCommitOperation>(operation: In): ReadableStream<AzureBlobCommitOperation, AzureBlobCommitOperation>;
+    public commit<In = AzureBlobCommitOperation>(operations: In[]): ReadableStream<AzureBlobCommitOperation, AzureBlobCommitOperation>;
+    public commit<In = AzureBlobCommitOperation>(operation: In, options: StreamOptions<In, AzureBlobCommitOperation>): ReadableStream<AzureBlobCommitOperation, AzureBlobCommitOperation>;
+    public commit<In = AzureBlobCommitOperation>(operations: In[], options: StreamOptions<In, AzureBlobCommitOperation>): ReadableStream<AzureBlobCommitOperation, AzureBlobCommitOperation>;
+    public commit<In = AzureBlobCommitOperation>(): ReadableStream<AzureBlobCommitOperation, AzureBlobCommitOperation> {
 
         // get arguments
         const operation = overarg<In>("object", ...arguments);
         const operations = overarg<In[]>("array", ...arguments) || [];
-        const options = overarg<StreamOptions<In, AzureBlobWriteOperation>>(1, "object", ...arguments) || {};
+        const options = overarg<StreamOptions<In, AzureBlobCommitOperation>>(1, "object", ...arguments) || {};
         if (operation) operations.push(operation);
 
         // immediately funnel everything provided
-        const stream = this.writeStream<In>(options);
+        const streams = this.commitStream<In, AzureBlobCommitOperation>(options, {});
         for (const operation of operations) {
-            stream.push(operation);
+            streams.in.push(operation);
         }
-        stream.end();
-        return stream;
+        streams.in.end();
+        return streams.out;
 
     }
 
-    public writeAsync<In>(operation: In): Promise<void>;
-    public writeAsync<In>(operations: In[]): Promise<void>;
-    public writeAsync<In>(operation: In, options: StreamOptions<In, AzureBlobWriteOperation>): Promise<void>;
-    public writeAsync<In>(operations: In[], options: StreamOptions<In, AzureBlobWriteOperation>): Promise<void>;
-    public writeAsync<In>(): Promise<void> {
+    /**
+A Promise to commit the specified operations. Note that each AzureBlobWriteOperation has .then(),
+.catch(), and .finally() so you can handle the response of each individual operation if needed.
+
+Here is an example of delete operations in TypeScript, including converting an array of strings
+into operations:
+
+```typescript
+commitAsync<string>([ "MyFile1", "MyFile2" ], {
+    transform: () => {
+        return new AzureBlobCommitOperation("delete", "MyContainer", filename).then(() => {
+            console.log(`${filename} deleted successfully.`);
+        }, error => {
+            console.error(error);
+        });
+    }
+});
+```
+     */
+    public commitAsync<In = AzureBlobCommitOperation>(operation: In): Promise<void>;
+    public commitAsync<In = AzureBlobCommitOperation>(operations: In[]): Promise<void>;
+    public commitAsync<In = AzureBlobCommitOperation>(operation: In, options: StreamOptions<In, AzureBlobCommitOperation>): Promise<void>;
+    public commitAsync<In = AzureBlobCommitOperation>(operations: In[], options: StreamOptions<In, AzureBlobCommitOperation>): Promise<void>;
+    public commitAsync<In = AzureBlobCommitOperation>(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             try {
 
                 // start querying
-                const stream: WriteableStream<In, AzureBlobWriteOperation> = this.write.call(this, ...arguments);
+                const stream: WriteableStream<In, AzureBlobCommitOperation> = this.commit.call(this, ...arguments);
 
                 // resolve when done
                 stream.on("end", () => {
@@ -236,13 +320,22 @@ export class AzureBlob {
         });
     }
 
-    public create(container: string, filename: string, content: string) {
+    /** A Promise to create a block blob with content. */
+    public createBlockBlob(container: string, filename: string, content: string) {
         const createBlockBlobFromText: (container: string, blob: string, text: string) => Promise<azs.BlobService.BlobResult> =
             util.promisify(azs.BlobService.prototype.createBlockBlobFromText).bind(this.service);
         return createBlockBlobFromText(container, filename, content);
     }
 
-    public append(container: string, filename: string, content?: string) {
+    /** A Promise to append to an existing append blob. */
+    public append(container: string, filename: string, content: string) {
+        const appendBlockFromText: (container: string, blob: string, content: string) => Promise<azs.BlobService.BlobResult> =
+            util.promisify(azs.BlobService.prototype.appendBlockFromText).bind(this.service);
+        return appendBlockFromText(container, filename, content);
+    }
+
+    /** A Promise to create an append blob, with or without content. Use append to add future content. */
+    public createAppendBlob(container: string, filename: string, content?: string) {
         const createOrReplaceAppendBlob: (container: string, blob: string) => Promise<void> =
             util.promisify(azs.BlobService.prototype.createOrReplaceAppendBlob).bind(this.service);
         const appendBlockFromText: (container: string, blob: string, content: string) => Promise<azs.BlobService.BlobResult> =
@@ -257,15 +350,36 @@ export class AzureBlob {
         });
     }
 
+    /** A Promise to delete a blob. */
     public delete(container: string, filename: string) {
         const deleteBlob: (container: string, blob: string) => Promise<void> =
             util.promisify(azs.BlobService.prototype.deleteBlob).bind(this.service);
         return deleteBlob(container, filename);
     }
 
-    public loadStream<In, Out>(): AzureBlobLoadStreams<In, Out>;
-    public loadStream<In, Out>(in_options: StreamOptions<In, AzureBlobLoadOperation>, out_options: StreamOptions<string, Out>): AzureBlobLoadStreams<In, Out>;
-    public loadStream<In, Out>(): AzureBlobLoadStreams<In, Out> {
+    /**
+This method creates an *in* and *out* stream. You can pump AzureBlobLoadOperation objects
+in and get strings out. You may also specify transforms for either or both of those
+streams to use different in objects or get different objects out.
+
+Below is an example in TypeScript:
+
+```typescript
+import * as azs from "azure-storage";
+const streams = loadStream();
+streams.in.push(new AzureBlobLoadOperation("MyContainer1", "MyFile1"));
+streams.in.push(new AzureBlobLoadOperation("MyContainer2", "MyFile2"));
+streams.in.end();
+streams.out.on("data", result => {
+    // result is string
+}).on("end", () => {
+    // everything in both operations has been loaded
+});
+```
+     */
+    public loadStream<In = AzureBlobLoadOperation, Out = string>(): AzureBlobLoadStreams<In, Out>;
+    public loadStream<In = AzureBlobLoadOperation, Out = string>(in_options: StreamOptions<In, AzureBlobLoadOperation>, out_options: StreamOptions<string, Out>): AzureBlobLoadStreams<In, Out>;
+    public loadStream<In = AzureBlobLoadOperation, Out = string>(): AzureBlobLoadStreams<In, Out> {
 
         // get arguments
         const in_options: StreamOptions<In, AzureBlobLoadOperation> = arguments[0] || {};
@@ -294,7 +408,7 @@ export class AzureBlob {
                     })
                     .catch(error => {
                         op.reject(error);
-                        streams.out.emit("error", error);
+                        streams.out.emit("error", error, op);
                     });
             }
 
@@ -306,11 +420,33 @@ export class AzureBlob {
         return streams;
     }
 
-    public load<Out>(container: string, filenames: string[]): ReadableStream<string, Out>;
-    public load<Out>(container: string, filenames: string[], transform: StreamTransform<string, Out>): ReadableStream<string, Out>;
-    public load<Out>(container: string, filenames: string[], options: StreamOptions<string, Out>): ReadableStream<string, Out>;
-    public load<Out>(container: string, filenames: string[], transform: StreamTransform<string, Out>, options: StreamOptions<string, Out>): ReadableStream<string, Out>;
-    public load<Out>(container: string, filenames: string[]): ReadableStream<string, Out> {
+    /**
+Use this method by specifying what to load and then an output stream will be updated with the
+strings (default) or specified output objects (via transform).
+
+There are multiple ways to work with the output stream (shown in TypeScript):
+
+```typescript
+// process results as they come in
+load(container).on("data", result => {
+    // result is string or Out (if transformed)
+}).on("end", () => {
+    // all entries have been reported
+});
+
+// process a batch of results every so often
+const out = list(container);
+setInterval(() => {
+    const batch = out.buffer.splice(0, 100);
+    // batch contains string[] or Out[] (if transformed)
+}, 1000);
+```
+     */
+    public load<Out = string>(container: string, filenames: string[]): ReadableStream<string, Out>;
+    public load<Out = string>(container: string, filenames: string[], transform: StreamTransform<string, Out>): ReadableStream<string, Out>;
+    public load<Out = string>(container: string, filenames: string[], options: StreamOptions<string, Out>): ReadableStream<string, Out>;
+    public load<Out = string>(container: string, filenames: string[], transform: StreamTransform<string, Out>, options: StreamOptions<string, Out>): ReadableStream<string, Out>;
+    public load<Out = string>(container: string, filenames: string[]): ReadableStream<string, Out> {
 
         // get arguments
         const transform = overarg<StreamTransform<string, Out>>("function", ...arguments);
@@ -337,11 +473,22 @@ export class AzureBlob {
 
     }
 
-    public async loadAsync<Out>(container: string, filenames: string[]): Promise<Out[]>;
-    public async loadAsync<Out>(container: string, filenames: string[], transform: StreamTransform<string, Out>): Promise<Out[]>;
-    public async loadAsync<Out>(container: string, filenames: string[], options: StreamOptions<string, Out>): Promise<Out[]>;
-    public async loadAsync<Out>(container: string, filenames: string[], transform: StreamTransform<string, Out>, options: StreamOptions<string, Out>): Promise<Out[]>;
-    public async loadAsync<Out>(): Promise<Out[]> {
+    /**
+A Promise to load the specified filenames in a container as strings or any format
+you desire using the *transform* option.
+
+Below is an example of using a tranform in TypeScript to return JSON objects:
+
+```typescript
+const filenames: string[] = [ "MyFilename1", "MyFilename2" ];
+const any[]  = loadAsync<any>("MyContainer", filenames, content => return JSON.parse(content));
+```
+     */
+    public async loadAsync<Out = string>(container: string, filenames: string[]): Promise<Out[]>;
+    public async loadAsync<Out = string>(container: string, filenames: string[], transform: StreamTransform<string, Out>): Promise<Out[]>;
+    public async loadAsync<Out = string>(container: string, filenames: string[], options: StreamOptions<string, Out>): Promise<Out[]>;
+    public async loadAsync<Out = string>(container: string, filenames: string[], transform: StreamTransform<string, Out>, options: StreamOptions<string, Out>): Promise<Out[]>;
+    public async loadAsync<Out = string>(): Promise<Out[]> {
         return new Promise<Out[]>((resolve, reject) => {
             try {
 
@@ -364,9 +511,36 @@ export class AzureBlob {
         });
     }
 
-    public listStream<In, Out>(): AzureBlobListStreams<In, Out>;
-    public listStream<In, Out>(in_options: StreamOptions<In, AzureBlobListOperation>, out_options: StreamOptions<azs.BlobService.BlobResult, Out>): AzureBlobListStreams<In, Out>;
-    public listStream<In, Out>(): AzureBlobListStreams<In, Out> {
+    /** A Promise to load a file as a string. */
+    public async loadFile(container: string, filename: string): Promise<string> {
+        const getBlobToText: (container: string, blob: string) => Promise<string> =
+            util.promisify(azs.BlobService.prototype.getBlobToText).bind(this.service);
+        return getBlobToText(container, filename);
+    }
+
+    /**
+This method creates an *in* and *out* stream. You can pump AzureBlobListOperation objects
+in and get BlobResult objects out. You may also specify transforms for either or both of those
+streams to use different in objects or get different objects out.
+
+Below is an example in TypeScript:
+
+```typescript
+import * as azs from "azure-storage";
+const streams = listStream();
+streams.in.push(new AzureBlobListOperation("MyContainer1"));
+streams.in.push(new AzureBlobListOperation("MyContainer2", "MyFolder1"));
+streams.in.end();
+streams.out.on("data", result => {
+    // result is azs.BlobService.BlobResult
+}).on("end", () => {
+    // everything in both operations has been listed
+});
+```
+     */
+    public listStream<In = AzureBlobListOperation, Out = azs.BlobService.BlobResult>(): AzureBlobListStreams<In, Out>;
+    public listStream<In = AzureBlobListOperation, Out = azs.BlobService.BlobResult>(in_options: StreamOptions<In, AzureBlobListOperation>, out_options: StreamOptions<azs.BlobService.BlobResult, Out>): AzureBlobListStreams<In, Out>;
+    public listStream<In = AzureBlobListOperation, Out = azs.BlobService.BlobResult>(): AzureBlobListStreams<In, Out> {
 
         // get arguments
         const in_options: StreamOptions<In, AzureBlobListOperation> = arguments[0] || {};
@@ -419,7 +593,7 @@ export class AzureBlob {
 
             } catch (error) {
                 op.reject(error);
-                streams.out.emit("error", error);
+                streams.out.emit("error", error, op);
                 work_counter--; // errors prevent it from continuing fetch operations
             }
         }
@@ -441,15 +615,6 @@ export class AzureBlob {
 
         return streams;
     }
-
-    public list<Out = azs.BlobService.BlobResult>(container: string): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
 
     /**
 Use this method by specifying what to list and then an output stream will be updated with the
@@ -480,6 +645,14 @@ just those that pass the RegExp match. Prefix is performed server-side (Azure) w
 pattern is performed client-side (this code), so use prefix for faster perfomance.
 ```
      */
+    public list<Out = azs.BlobService.BlobResult>(container: string): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    public list<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
     public list<Out = azs.BlobService.BlobResult>(container: string): ReadableStream<azs.BlobService.BlobResult, Out> {
 
         // get arguments
@@ -515,21 +688,21 @@ interface MyFormat {
     public filename: string;
 }
 
-MyFormat[] filenames = listAsync<MyFormat>((blobResult azs.BlobService.BlobResult) => {
+MyFormat[] filenames = listAsync<MyFormat>("MyContainer", (blobResult: azs.BlobService.BlobResult) => {
     return {
         filename: blobResult.name
     } as MyFormat;
 });
 ```
      */
-    public listAsync<Out = azs.BlobService.BlobResult>(): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
-    public listAsync<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, prefix: string): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
+    public listAsync<Out = azs.BlobService.BlobResult>(container: string, prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): Promise<Out[]>;
     public listAsync<Out = azs.BlobService.BlobResult>(): Promise<Out[]> {
         return new Promise<Out[]>((resolve, reject) => {
             try {
@@ -614,7 +787,7 @@ MyFormat[] filenames = listAsync<MyFormat>((blobResult azs.BlobService.BlobResul
         return this.listFiltered(container);
     }
 
-    /** Create a container if it does not exist. */
+    /** A Promise to create a container if it does not exist. */
     public createContainerIfNotExists(container: string) {
         const createContainerIfNotExists: (container: string) => Promise<azs.BlobService.ContainerResult> =
             util.promisify(azs.BlobService.prototype.createContainerIfNotExists).bind(this.service);

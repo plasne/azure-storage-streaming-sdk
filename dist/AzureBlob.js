@@ -1,4 +1,6 @@
 "use strict";
+// notes:
+// There is no good way to document overloads: https://github.com/Microsoft/TypeScript/issues/407
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -24,7 +26,7 @@ const util = __importStar(require("util"));
 const Streams_1 = require("./Streams");
 const PromiseImposer_1 = __importDefault(require("./PromiseImposer"));
 const overarg_1 = require("overarg");
-class AzureBlobWriteOperation extends PromiseImposer_1.default {
+class AzureBlobCommitOperation extends PromiseImposer_1.default {
     /** This class designates a write operation that can be queued, streamed, etc.
      * After creating an object, you may be alerted when its operation is complete using .then(),
      * .finally(), and trap errors with .catch().
@@ -37,7 +39,7 @@ class AzureBlobWriteOperation extends PromiseImposer_1.default {
         this.content = content;
     }
 }
-exports.AzureBlobWriteOperation = AzureBlobWriteOperation;
+exports.AzureBlobCommitOperation = AzureBlobCommitOperation;
 class AzureBlobLoadOperation extends PromiseImposer_1.default {
     /** This class designates a load operation that can be queued, streamed, etc.
      * After creating an object, you may be alerted when its operation is complete using .then(),
@@ -64,31 +66,33 @@ class AzureBlobListOperation extends PromiseImposer_1.default {
 }
 exports.AzureBlobListOperation = AzureBlobListOperation;
 class AzureBlob {
-    writeStream() {
+    commitStream() {
         // get arguments
-        const transform = overarg_1.overarg("function", ...arguments);
-        const options = overarg_1.overarg("object", ...arguments) || {};
-        if (transform)
-            options.transform = transform;
-        // create stream
-        const stream = new Streams_1.WriteableStream(options);
+        const in_options = arguments[0] || {};
+        const out_options = arguments[1] || {};
+        // create the streams
+        const streams = {
+            in: new Streams_1.WriteableStream(in_options),
+            out: new Streams_1.ReadableStream(out_options)
+        };
         // promisify
         const createBlockBlobFromText = util.promisify(azs.BlobService.prototype.createBlockBlobFromText).bind(this.service);
         const createOrReplaceAppendBlob = util.promisify(azs.BlobService.prototype.createOrReplaceAppendBlob).bind(this.service);
         const appendBlockFromText = util.promisify(azs.BlobService.prototype.appendBlockFromText).bind(this.service);
         const deleteBlob = util.promisify(azs.BlobService.prototype.deleteBlob).bind(this.service);
-        // produce promises to save the files
-        stream.processSelf(() => {
-            const op = stream.buffer.pop();
+        // produce promises to commit the operations
+        streams.out.processFrom(streams.in, () => {
+            const op = streams.in.buffer.pop();
             // process a block write
             if (op && op.type === "block" && op.content) {
                 return createBlockBlobFromText(op.container, op.filename, op.content)
                     .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                     .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
             // process an append
@@ -104,10 +108,11 @@ class AzureBlob {
                 })
                     .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                     .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
             // process a delete
@@ -115,18 +120,19 @@ class AzureBlob {
                 return deleteBlob(op.container, op.filename)
                     .then(() => {
                     op.resolve();
+                    streams.out.emit("data", op);
                 })
                     .catch(error => {
                     op.reject(error);
-                    stream.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
             // nothing else to do
             return null;
         });
-        return stream;
+        return streams;
     }
-    write() {
+    commit() {
         // get arguments
         const operation = overarg_1.overarg("object", ...arguments);
         const operations = overarg_1.overarg("array", ...arguments) || [];
@@ -134,18 +140,18 @@ class AzureBlob {
         if (operation)
             operations.push(operation);
         // immediately funnel everything provided
-        const stream = this.writeStream(options);
+        const streams = this.commitStream(options, {});
         for (const operation of operations) {
-            stream.push(operation);
+            streams.in.push(operation);
         }
-        stream.end();
-        return stream;
+        streams.in.end();
+        return streams.out;
     }
-    writeAsync() {
+    commitAsync() {
         return new Promise((resolve, reject) => {
             try {
                 // start querying
-                const stream = this.write.call(this, ...arguments);
+                const stream = this.commit.call(this, ...arguments);
                 // resolve when done
                 stream.on("end", () => {
                     resolve();
@@ -156,11 +162,18 @@ class AzureBlob {
             }
         });
     }
-    create(container, filename, content) {
+    /** A Promise to create a block blob with content. */
+    createBlockBlob(container, filename, content) {
         const createBlockBlobFromText = util.promisify(azs.BlobService.prototype.createBlockBlobFromText).bind(this.service);
         return createBlockBlobFromText(container, filename, content);
     }
+    /** A Promise to append to an existing append blob. */
     append(container, filename, content) {
+        const appendBlockFromText = util.promisify(azs.BlobService.prototype.appendBlockFromText).bind(this.service);
+        return appendBlockFromText(container, filename, content);
+    }
+    /** A Promise to create an append blob, with or without content. Use append to add future content. */
+    createAppendBlob(container, filename, content) {
         const createOrReplaceAppendBlob = util.promisify(azs.BlobService.prototype.createOrReplaceAppendBlob).bind(this.service);
         const appendBlockFromText = util.promisify(azs.BlobService.prototype.appendBlockFromText).bind(this.service);
         return createOrReplaceAppendBlob(container, filename).then(() => {
@@ -173,6 +186,7 @@ class AzureBlob {
             }
         });
     }
+    /** A Promise to delete a blob. */
     delete(container, filename) {
         const deleteBlob = util.promisify(azs.BlobService.prototype.deleteBlob).bind(this.service);
         return deleteBlob(container, filename);
@@ -200,7 +214,7 @@ class AzureBlob {
                 })
                     .catch(error => {
                     op.reject(error);
-                    streams.out.emit("error", error);
+                    streams.out.emit("error", error, op);
                 });
             }
             // nothing else to do
@@ -255,6 +269,13 @@ class AzureBlob {
             });
         });
     }
+    /** A Promise to load a file as a string. */
+    loadFile(container, filename) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const getBlobToText = util.promisify(azs.BlobService.prototype.getBlobToText).bind(this.service);
+            return getBlobToText(container, filename);
+        });
+    }
     listStream() {
         // get arguments
         const in_options = arguments[0] || {};
@@ -298,7 +319,7 @@ class AzureBlob {
             }
             catch (error) {
                 op.reject(error);
-                streams.out.emit("error", error);
+                streams.out.emit("error", error, op);
                 work_counter--; // errors prevent it from continuing fetch operations
             }
         });
@@ -316,35 +337,6 @@ class AzureBlob {
         });
         return streams;
     }
-    /**
-Use this method by specifying what to list and then an output stream will be updated with the
-BlobResults (default) or specified output objects (via transform).
-
-There are multiple ways to work with the output stream (shown in TypeScript):
-
-```typescript
-// process results as they come in
-list(container).on("data", result => {
-    // result is BlobResult or Out (if transformed)
-}).on("end", () => {
-    // all entries have been reported
-});
-
-// process a batch of results every so often
-const out = list(container);
-setInterval(() => {
-    const batch = out.buffer.splice(0, 100);
-    // batch contains BlobResult[] or Out[] (if transformed)
-}, 1000);
-```
-
-You may specify a *prefix* (string) and or a *pattern* (RegExp).
-Using a prefix will list all blobs that start with that string (most commonly this is
-used to iterate everything in a "folder"). Using a pattern will filter the results to
-just those that pass the RegExp match. Prefix is performed server-side (Azure) whereas
-pattern is performed client-side (this code), so use prefix for faster perfomance.
-```
-     */
     list(container) {
         // get arguments
         const prefix = overarg_1.overarg(1, "string", ...arguments);
@@ -421,7 +413,7 @@ pattern is performed client-side (this code), so use prefix for faster perfomanc
     listAll(container) {
         return this.listFiltered(container);
     }
-    /** Create a container if it does not exist. */
+    /** A Promise to create a container if it does not exist. */
     createContainerIfNotExists(container) {
         const createContainerIfNotExists = util.promisify(azs.BlobService.prototype.createContainerIfNotExists).bind(this.service);
         return createContainerIfNotExists(container);

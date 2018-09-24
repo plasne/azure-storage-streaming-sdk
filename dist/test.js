@@ -7,3 +7,5 @@
 //import * as dom from "xmldom";
 //import { overarg, overargFunc } from "overarg";
 //import { AzureBlob } from "./index";
+//const c = new AzureBlob()
+//c.listFiltered()
