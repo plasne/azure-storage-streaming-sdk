@@ -463,4 +463,4 @@ httpsAgent.maxSockets = 20;
         }
     }
 }
-exports.default = AzureBlob;
+exports.AzureBlob = AzureBlob;

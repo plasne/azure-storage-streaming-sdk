@@ -108,7 +108,7 @@ type AzureBlobListStreams<T, U> = {
     out: ReadableStream<azs.BlobService.BlobResult, U>
 }
 
-export default class AzureBlob {
+export class AzureBlob {
 
     public readonly service:    azs.BlobService;
 

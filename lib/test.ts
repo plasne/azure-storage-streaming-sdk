@@ -6,3 +6,5 @@
 //import * as xpath from "xpath";
 //import * as dom from "xmldom";
 //import { overarg, overargFunc } from "overarg";
+//import { AzureBlob } from "./index";
+

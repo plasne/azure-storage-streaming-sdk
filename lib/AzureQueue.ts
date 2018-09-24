@@ -6,7 +6,7 @@ import PromisePool from "es6-promise-pool";
 
 export type encoders = "base64" | "xml" | "binary";
 
-export interface AzureQueueJSON {
+export interface AzureQueueOptions {
     service?:          azs.QueueService,
     useGlobalAgent?:   boolean,
     connectionString?: string,
@@ -82,7 +82,7 @@ export default class AzureQueue {
         }
     }
 
-    constructor(obj: AzureQueueJSON) {
+    constructor(obj: AzureQueueOptions) {
 
         // establish the service
         if (obj.service) {
