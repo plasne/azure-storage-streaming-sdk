@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -16,15 +24,17 @@ const util = __importStar(require("util"));
 const es6_promise_pool_1 = __importDefault(require("es6-promise-pool"));
 class AzureQueue {
     // returns true if there are any messages in the queue
-    async hasMessages(queue) {
-        const getQueueMetadata = util.promisify(azs.QueueService.prototype.getQueueMetadata).bind(this.service);
-        const result = await getQueueMetadata(queue);
-        if (result.approximateMessageCount == null) {
-            return true; // it is safer to assume there could be
-        }
-        else {
-            return (result.approximateMessageCount > 0);
-        }
+    hasMessages(queue) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const getQueueMetadata = util.promisify(azs.QueueService.prototype.getQueueMetadata).bind(this.service);
+            const result = yield getQueueMetadata(queue);
+            if (result.approximateMessageCount == null) {
+                return true; // it is safer to assume there could be
+            }
+            else {
+                return (result.approximateMessageCount > 0);
+            }
+        });
     }
     // add a single message to the queue
     enqueueMessage(queue, message) {
@@ -32,22 +42,24 @@ class AzureQueue {
         return createMessage(queue, message);
     }
     // add multiple messages to the queue in parallel
-    async enqueueMessages(queue, messages, concurrency = 10) {
-        // produce promises to save them
-        let index = 0;
-        const producer = () => {
-            if (index < messages.length) {
-                const message = messages[index];
-                index++;
-                return this.enqueueMessage(queue, message);
-            }
-            else {
-                return undefined;
-            }
-        };
-        // enqueue them x at a time
-        const pool = new es6_promise_pool_1.default(producer, concurrency);
-        await pool.start();
+    enqueueMessages(queue, messages, concurrency = 10) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // produce promises to save them
+            let index = 0;
+            const producer = () => {
+                if (index < messages.length) {
+                    const message = messages[index];
+                    index++;
+                    return this.enqueueMessage(queue, message);
+                }
+                else {
+                    return undefined;
+                }
+            };
+            // enqueue them x at a time
+            const pool = new es6_promise_pool_1.default(producer, concurrency);
+            yield pool.start();
+        });
     }
     // create the queue if it doesn't already exist
     createQueueIfNotExists(queue) {

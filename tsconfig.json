@@ -4,14 +4,12 @@
     ],
     "compilerOptions": {
         "outDir": "./dist",
-        "target": "esnext",
+        "target": "es6",
         "module": "commonjs",
         "lib": [
             "es2018",
             "dom"
         ],
-        "allowJs": true,
-        "checkJs": true,
         "strict": true,
         "noImplicitAny": true,
         "strictNullChecks": true,
@@ -23,8 +21,8 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "moduleResolution": "node",
         "esModuleInterop": true,
-        "allowSyntheticDefaultImports": false
+        "allowSyntheticDefaultImports": false,
+        "declaration": true
     }
 }

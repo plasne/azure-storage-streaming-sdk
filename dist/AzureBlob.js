@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -226,23 +234,25 @@ class AzureBlob {
         streams.in.end();
         return streams.out;
     }
-    async loadAsync() {
-        return new Promise((resolve, reject) => {
-            try {
-                // start querying
-                const stream = this.load.call(this, ...arguments);
-                // only allow up to maxBuffer
-                stream.on("paused", () => {
-                    stream.cancel();
-                });
-                // resolve when done
-                stream.on("end", () => {
-                    resolve(stream.buffer);
-                });
-            }
-            catch (error) {
-                reject(error);
-            }
+    loadAsync() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                try {
+                    // start querying
+                    const stream = this.load.call(this, ...arguments);
+                    // only allow up to maxBuffer
+                    stream.on("paused", () => {
+                        stream.cancel();
+                    });
+                    // resolve when done
+                    stream.on("end", () => {
+                        resolve(stream.buffer);
+                    });
+                }
+                catch (error) {
+                    reject(error);
+                }
+            });
         });
     }
     listStream() {
@@ -266,12 +276,12 @@ class AzureBlob {
         const listBlobsSegmented = util.promisify(azs.BlobService.prototype.listBlobsSegmented).bind(this.service);
         const listBlobsSegmentedWithPrefix = util.promisify(azs.BlobService.prototype.listBlobsSegmentedWithPrefix).bind(this.service);
         // define the recursive fetch function
-        const fetch = async (op) => {
+        const fetch = (op) => __awaiter(this, void 0, void 0, function* () {
             try {
                 // get next batch
                 const result = (op.prefix) ?
-                    await listBlobsSegmentedWithPrefix(op.container, op.prefix, op.token) :
-                    await listBlobsSegmented(op.container, op.token);
+                    yield listBlobsSegmentedWithPrefix(op.container, op.prefix, op.token) :
+                    yield listBlobsSegmented(op.container, op.token);
                 // step through each entry and push to the stream
                 for (const entry of result.entries) {
                     streams.out.push(entry);
@@ -291,7 +301,7 @@ class AzureBlob {
                 streams.out.emit("error", error);
                 work_counter--; // errors prevent it from continuing fetch operations
             }
-        };
+        });
         // produce promises to load the files
         streams.out.processFrom(streams.in, () => {
             // get an operation from the work stream
