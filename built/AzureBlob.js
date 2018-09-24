@@ -15,7 +15,7 @@ const azs = __importStar(require("azure-storage"));
 const util = __importStar(require("util"));
 const Streams_1 = require("./Streams");
 const PromiseImposer_1 = __importDefault(require("./PromiseImposer"));
-const argumentor_1 = __importDefault(require("./argumentor"));
+const overarg_1 = require("./overarg");
 class AzureBlobStreamWriteOperation extends PromiseImposer_1.default {
     constructor(mode, filename, content) {
         super();
@@ -42,15 +42,10 @@ exports.AzureBlobStreamListOperation = AzureBlobStreamListOperation;
 class AzureBlob {
     writeStream() {
         // get arguments
-        let options = {};
-        if (arguments[0] && typeof arguments[0] === "object")
-            options = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "object")
-            options = arguments[1];
-        if (arguments[0] && typeof arguments[0] === "function")
-            options.transform = arguments[0];
-        if (arguments[1] && typeof arguments[1] === "function")
-            options.transform = arguments[1];
+        const transform = overarg_1.overarg("function", ...arguments);
+        const options = overarg_1.overarg("object", ...arguments) || {};
+        if (transform)
+            options.transform = transform;
         // create stream
         const stream = new Streams_1.WriteableStream(options);
         // promisify
@@ -109,16 +104,11 @@ class AzureBlob {
     }
     write() {
         // get arguments
-        let operations = [];
-        let options = {};
-        if (arguments[1] && typeof arguments[1] === "object")
-            options = arguments[1];
-        if (arguments[0] && Array.isArray(arguments[0])) {
-            operations = arguments[0];
-        }
-        else {
-            operations.push(arguments[0]);
-        }
+        const operation = overarg_1.overarg("object", ...arguments);
+        const operations = overarg_1.overarg("array", ...arguments) || [];
+        const options = overarg_1.overarg(1, "object", ...arguments) || {};
+        if (operation)
+            operations.push(operation);
         // immediately funnel everything provided
         const stream = this.writeStream(options);
         for (const operation of operations) {
@@ -195,6 +185,11 @@ class AzureBlob {
         return streams;
     }
     load(filenames) {
+        // get arguments
+        const transform = overarg_1.overarg("function", ...arguments);
+        const options = overarg_1.overarg("object", ...arguments) || {};
+        if (transform)
+            options.transform = transform;
         // get arguments
         let out_options = {};
         if (arguments[1] && typeof arguments[1] === "object")
@@ -297,8 +292,9 @@ class AzureBlob {
     }
     list() {
         // get arguments
-        let { 0: prefix, 1: transform, 2: options } = argumentor_1.default(["string", "function", "object"], ...arguments);
-        options = options || {};
+        const prefix = overarg_1.overarg("string", ...arguments);
+        const transform = overarg_1.overarg("function", ...arguments);
+        const options = overarg_1.overarg("object", ...arguments) || {};
         if (transform)
             options.transform = transform;
         // immediately funnel everything provided
@@ -331,7 +327,8 @@ class AzureBlob {
             try {
                 // get arguments
                 const options = {};
-                let { 0: prefix, 1: pattern } = argumentor_1.default(["string", RegExp], ...arguments);
+                const prefix = overarg_1.overarg("string", ...arguments);
+                const pattern = overarg_1.overarg(RegExp, ...arguments);
                 // define the transform
                 options.transform = (data) => {
                     if (pattern) {

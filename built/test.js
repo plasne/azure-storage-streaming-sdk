@@ -1,65 +1,55 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 //import AzureBlob from "./AzureBlob";
 //import { StreamTransform, StreamOptions } from "./Streams";
 //import * as azs from "azure-storage";
 //import * as util from "util";
 //import * as xpath from "xpath";
 //import * as dom from "xmldom";
-//import argumentor from "./argumentor";
-/*
-const blobs = new AzureBlob({
-    account:  "prossapdepot",
-    key:       "9xsijr5ok6B+LzWbIOxARxAj6iEqqPyvGOZToL+A8LN8v5PCmiaKVivLZVBVXAyEU6B9smoY9vQon8vpcIWfPg==",
-    container: "input"
-});
-
-blobs.listAsync<azs.BlobService.BlobResult>("20180910T151500/").then(blobbers => {
-    console.log(blobbers);
-});
-*/
-/*
-interface monkey {
-    type: "monkey"
+const overarg_1 = require("./overarg");
+class Mouse {
+    constructor() {
+        this.name = "Mickey";
+    }
 }
-
-interface dog {
-    type: "dog"
-}
-
-function test(): void;
-function test(a: monkey): void;
-function test(b: dog): void;
-function test(a: StreamTransform<string, string>, b: StreamOptions<string, string>): void;
 function test() {
-    const { 0: options, 1: transform }: { 0?: StreamOptions<string, string>, 1?: StreamTransform<string, string> } = argumentor([ "object", "function" ], ...arguments);
-    console.log("  " + options);
-    console.log("  " + transform);
+    //const { 0: name, 1: prefix }: { 0?: string, 1?: RegExp } = argumentor([ "string", RegExp ], ...arguments);
+    const name = overarg_1.overarg("string", ...arguments);
+    const pattern = overarg_1.overarg(RegExp, ...arguments);
+    const color = overarg_1.overarg(1, "string", ...arguments);
+    const work = overarg_1.overarg("function", ...arguments);
+    const animal = overarg_1.overarg(1, "object", ...arguments);
+    const pet = overarg_1.overargFunc((arg) => arg.type === "dog", ...arguments);
+    const mouse = overarg_1.overarg(Mouse, ...arguments);
+    console.log("  name:    " + name);
+    console.log("  pattern: " + pattern);
+    console.log("  color:   " + color);
+    console.log("  work:    " + work);
+    console.log("  animal:  " + JSON.stringify(animal));
+    console.log("  pet:     " + JSON.stringify(pet));
+    console.log("  mouse:   " + JSON.stringify(mouse));
 }
-
 console.log("test 1:");
 test();
-
 console.log("test 2:");
-test({
-    transform: data => {
-        return data;
-    }
-});
-
+test("Peter");
 console.log("test 3:");
-test(data => {
-    return data;
-});
-
+test(/Peter/g);
 console.log("test 4:");
-test(data => {
-    return data;
-}, {
-    transform: data => {
-        return data;
-    }
+test("Peter", /Peter/g);
+console.log("test 5:");
+test("Peter", /Peter/g, "red");
+console.log("test 6:");
+test("Peter", /Peter/g, (a) => {
+    return a;
 });
-*/
+console.log("test 7:");
+test("Peter", /Peter/g, { type: "monkey" });
+console.log("test 8:");
+test("Peter", /Peter/g, { type: "dog" });
+console.log("test 9:");
+test("Peter", /Peter/g, new Mouse());
+// add array case
 /*
 const a = 1;
 

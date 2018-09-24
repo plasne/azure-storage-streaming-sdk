@@ -1,10 +1,9 @@
 {
     "include": [
-        "./src/**/*",
-        "./node_modules/@machinomy/types-readable-stream/index.d.ts"
+        "./lib/**/*"
     ],
     "compilerOptions": {
-        "outDir": "./built",
+        "outDir": "./dist",
         "target": "esnext",
         "module": "commonjs",
         "lib": [

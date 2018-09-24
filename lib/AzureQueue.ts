@@ -3,7 +3,6 @@
 import * as azs from "azure-storage";
 import * as util from "util";
 import PromisePool from "es6-promise-pool";
-import { EventEmitter } from "events";
 
 export type encoders = "base64" | "xml" | "binary";
 
@@ -14,39 +13,34 @@ export interface AzureQueueJSON {
     account?:          string,
     sas?:              string,
     key?:              string,
-    name:              string,
     encoder?:          encoders
 }
 
 export default class AzureQueue {
 
-    public events:  EventEmitter = new EventEmitter();
     public service: azs.QueueService;
-    public name:    string;
 
     // returns true if there are any messages in the queue
-    public async hasMessages() {
+    public async hasMessages(queue: string) {
         const getQueueMetadata: (queue: string) => Promise<azs.QueueService.QueueResult> =
             util.promisify(azs.QueueService.prototype.getQueueMetadata).bind(this.service);
-        const result = await getQueueMetadata(this.name);
+        const result = await getQueueMetadata(queue);
         if (result.approximateMessageCount == null) {
-            this.events.emit("verbose", `approximate message count is queue "${this.name}" is "indeterminate".`);
             return true; // it is safer to assume there could be
         } else {
-            this.events.emit("verbose", `approximate message count is queue "${this.name}" is "${result.approximateMessageCount}".`);
             return (result.approximateMessageCount > 0);
         }
     }
 
     // add a single message to the queue
-    public enqueueMessage(message: string) {
+    public enqueueMessage(queue: string, message: string) {
         const createMessage: (queue: string, message: string) => Promise<azs.QueueService.QueueMessageResult> =
             util.promisify(azs.QueueService.prototype.createMessage).bind(this.service);
-        return createMessage(this.name, message);
+        return createMessage(queue, message);
     }
 
     // add multiple messages to the queue in parallel
-    public async enqueueMessages(messages: string[], concurrency: number = 10) {
+    public async enqueueMessages(queue: string, messages: string[], concurrency: number = 10) {
 
         // produce promises to save them
         let index = 0;
@@ -54,8 +48,7 @@ export default class AzureQueue {
             if (index < messages.length) {
                 const message = messages[index];
                 index++;
-                if (index % 100 === 0) this.events.emit("verbose", `${index} message(s) enqueued thusfar...`);
-                return this.enqueueMessage(message);
+                return this.enqueueMessage(queue, message);
             } else {
                 return undefined;
             }
@@ -65,16 +58,13 @@ export default class AzureQueue {
         const pool = new PromisePool(producer, concurrency);
         await pool.start();
 
-        // log
-        this.events.emit("verbose", `${index} message(s) enqueued.`);
-
     }
 
     // create the queue if it doesn't already exist
-    public createQueueIfNotExists() {
+    public createQueueIfNotExists(queue: string) {
         const createQueueIfNotExists: (queue: string) => Promise<azs.QueueService.QueueResult> =
             util.promisify(azs.QueueService.prototype.createQueueIfNotExists).bind(this.service);
-        return createQueueIfNotExists(this.name);
+        return createQueueIfNotExists(queue);
     }
 
     // set the encoding method
@@ -113,9 +103,6 @@ export default class AzureQueue {
         } else {
             throw new Error(`You must specify service, connectionString, account/sas, or account/key.`)
         }
-
-        // record the queue name
-        this.name = obj.name;
 
     }
 

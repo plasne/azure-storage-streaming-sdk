@@ -1,15 +1,15 @@
 
 ```typescript
 // list the blobs via a streaming pattern
-public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out> {
+public list<Out = azs.BlobService.BlobResult>(): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(): ReadableStream<azs.BlobService.BlobResult, Out> {
 
     // get arguments
     let prefix: string | undefined = undefined;
@@ -26,15 +26,15 @@ public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out> {
 
 ```typescript
 // list the blobs via a streaming pattern
-public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
-public list<Out>(): ReadableStream<azs.BlobService.BlobResult, Out> {
+public list<Out = azs.BlobService.BlobResult>(): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(prefix: string, transform: StreamTransform<azs.BlobService.BlobResult, Out>, options: StreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+public list<Out = azs.BlobService.BlobResult>(): ReadableStream<azs.BlobService.BlobResult, Out> {
 
     // get arguments
     let { 0: prefix, 1: transform, 2: options }: { 0?: string, 1?: StreamTransform<azs.BlobService.BlobResult, Out>, 2?: StreamOptions<azs.BlobService.BlobResult, Out> } = argumentor([ "string", "function", "object" ], ...arguments);
