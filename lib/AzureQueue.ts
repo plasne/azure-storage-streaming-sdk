@@ -98,10 +98,11 @@ export default class AzureQueue {
                                 .then(result => {
                                     for (const pkg of result) {
                                         if (pkg.messageText) {
-                                            streams.out.push(
+                                            const out = streams.out.push(
                                                 pkg.messageText,
                                                 op
                                             );
+                                            op.push(out);
                                         }
                                     }
                                     op.resolve(result);

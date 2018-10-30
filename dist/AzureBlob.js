@@ -190,7 +190,8 @@ class AzureBlob {
                             return this.service.listBlobsSegmented(op.container, op.token, (error, result) => {
                                 if (!error) {
                                     for (const entity of result.entries) {
-                                        streams.out.push(entity, op);
+                                        const out = streams.out.push(entity, op);
+                                        op.push(out);
                                     }
                                     if (result.continuationToken) {
                                         op.token =
@@ -214,7 +215,8 @@ class AzureBlob {
                             return this.service.listBlobsSegmentedWithPrefix(op.container, op.prefix || '', op.token, (error, result) => {
                                 if (!error) {
                                     for (const entity of result.entries) {
-                                        streams.out.push(entity, op);
+                                        const out = streams.out.push(entity, op);
+                                        op.push(out);
                                     }
                                     if (result.continuationToken) {
                                         op.token =

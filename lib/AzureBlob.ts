@@ -252,7 +252,11 @@ export default class AzureBlob {
                                     (error, result) => {
                                         if (!error) {
                                             for (const entity of result.entries) {
-                                                streams.out.push(entity, op);
+                                                const out = streams.out.push(
+                                                    entity,
+                                                    op
+                                                );
+                                                op.push(out);
                                             }
                                             if (result.continuationToken) {
                                                 op.token =
@@ -283,7 +287,11 @@ export default class AzureBlob {
                                     (error, result) => {
                                         if (!error) {
                                             for (const entity of result.entries) {
-                                                streams.out.push(entity, op);
+                                                const out = streams.out.push(
+                                                    entity,
+                                                    op
+                                                );
+                                                op.push(out);
                                             }
                                             if (result.continuationToken) {
                                                 op.token =

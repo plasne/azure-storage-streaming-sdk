@@ -161,31 +161,27 @@ export default class AzureTable {
                                         i++
                                     ) {
                                         const opresult = result[i]; // TODO: make sure the results are always in order
-                                        const operation = operations[i];
+                                        const op = operations[i];
                                         if (!opresult.error) {
                                             if (isRetrieveBatch) {
                                                 streams.out.push(
                                                     opresult.entity,
                                                     operations[0]
                                                 );
-                                                operation.resolve(
-                                                    opresult.entity
-                                                );
+                                                op.resolve(opresult.entity);
                                             } else {
                                                 streams.out.emit(
                                                     'success',
                                                     opresult.response
                                                 );
-                                                operation.resolve(
-                                                    opresult.response
-                                                );
+                                                op.resolve(opresult.response);
                                             }
                                         } else {
                                             streams.out.emit(
                                                 'error',
                                                 opresult.error
                                             );
-                                            operation.reject(error);
+                                            op.reject(error);
                                         }
                                     }
                                     resolve(result);
@@ -207,28 +203,31 @@ export default class AzureTable {
 
                 // commit as operation
                 if (operations.length === 1) {
-                    const operation = operations[0];
+                    const op = operations[0];
                     return new Promise((resolve, reject) => {
                         return this.service.queryEntities(
-                            operation.table,
-                            operation.query || new azs.TableQuery(),
-                            operation.token,
+                            op.table,
+                            op.query || new azs.TableQuery(),
+                            op.token,
                             (error, result) => {
                                 if (!error) {
                                     for (const entity of result.entries) {
-                                        streams.out.push(entity, operations);
+                                        const out = streams.out.push(
+                                            entity,
+                                            operations
+                                        );
+                                        op.push(out);
                                     }
                                     if (result.continuationToken) {
-                                        operation.token =
-                                            result.continuationToken;
-                                        streams.in.buffer.push(operation);
+                                        op.token = result.continuationToken;
+                                        streams.in.buffer.push(op);
                                     } else {
-                                        operation.resolve();
+                                        op.resolve();
                                     }
                                     resolve();
                                 } else {
                                     streams.out.emit('error', error);
-                                    operation.reject(error);
+                                    op.reject(error);
                                     reject(error);
                                 }
                             }
