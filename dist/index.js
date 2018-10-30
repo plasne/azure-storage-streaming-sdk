@@ -1,12 +1,25 @@
 "use strict";
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const AzureBlob_1 = __importDefault(require("./AzureBlob"));
+exports.AzureBlob = AzureBlob_1.default;
+const AzureBlobOperation_1 = __importDefault(require("./AzureBlobOperation"));
+exports.AzureBlobOperation = AzureBlobOperation_1.default;
+const AzureQueue_1 = __importDefault(require("./AzureQueue"));
+exports.AzureQueue = AzureQueue_1.default;
+const AzureQueueOperation_1 = __importDefault(require("./AzureQueueOperation"));
+exports.AzureQueueOperation = AzureQueueOperation_1.default;
 const AzureTable_1 = __importDefault(require("./AzureTable"));
 exports.AzureTable = AzureTable_1.default;
-__export(require("./AzureBlob"));
-__export(require("./AzureQueue"));
+const AzureTableOperation_1 = __importDefault(require("./AzureTableOperation"));
+exports.AzureTableOperation = AzureTableOperation_1.default;
+const PromiseImposter_1 = __importDefault(require("./PromiseImposter"));
+exports.PromiseImposter = PromiseImposter_1.default;
+const ReadableStream_1 = __importDefault(require("./ReadableStream"));
+exports.ReadableStream = ReadableStream_1.default;
+const Stream_1 = __importDefault(require("./Stream"));
+exports.Stream = Stream_1.default;
+const WriteableStream_1 = __importDefault(require("./WriteableStream"));
+exports.WriteableStream = WriteableStream_1.default;
