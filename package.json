@@ -9,15 +9,26 @@
   "license": "ISC",
   "dependencies": {
     "azure-storage": "^2.10.1",
+    "dotenv": "^6.1.0",
     "es6-promise-pool": "^2.5.0",
     "overarg": "^1.0.2",
+    "promise-timeout": "^1.3.0",
+    "query-string": "^6.2.0",
+    "request": "^2.88.0",
     "ts-stream": "^1.0.1",
     "xmldom": "^0.1.27",
     "xpath": "0.0.27"
   },
   "devDependencies": {
+    "@types/dotenv": "^4.0.3",
     "@types/node": "^10.10.1",
-    "@types/xmldom": "^0.1.29"
+    "@types/promise-timeout": "^1.3.0",
+    "@types/query-string": "^6.1.1",
+    "@types/request": "^2.48.0",
+    "@types/xmldom": "^0.1.29",
+    "eslint": "^5.6.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0"
   },
   "description": ""
 }

@@ -1,6 +1,10 @@
-import * as azs from "azure-storage";
-export declare type encoders = "base64" | "xml" | "binary";
-export interface AzureQueueOptions {
+import * as azs from 'azure-storage';
+import AzureQueueOperation from './AzureQueueOperation';
+import ReadableStream from './ReadableStream';
+import { IStreamOptions } from './Stream';
+import WriteableStream from './WriteableStream';
+export declare type encoders = 'base64' | 'xml' | 'binary';
+export interface IAzureQueueOptions {
     service?: azs.QueueService;
     useGlobalAgent?: boolean;
     connectionString?: string;
@@ -9,12 +13,25 @@ export interface AzureQueueOptions {
     key?: string;
     encoder?: encoders;
 }
+interface IAzureQueueStreams<T, U> {
+    in: WriteableStream<T, AzureQueueOperation>;
+    out: ReadableStream<string, U>;
+}
 export default class AzureQueue {
     service: azs.QueueService;
+    constructor(obj: IAzureQueueOptions);
+    /** Returns *true* if there are any messages in the queue. */
     hasMessages(queue: string): Promise<boolean>;
-    enqueueMessage(queue: string, message: string): Promise<azs.QueueService.QueueMessageResult>;
-    enqueueMessages(queue: string, messages: string[], concurrency?: number): Promise<void>;
+    streams<In = AzureQueueOperation, Out = string>(): IAzureQueueStreams<In, Out>;
+    streams<In = AzureQueueOperation, Out = AzureQueueOperation>(inOptions: IStreamOptions<In, AzureQueueOperation>, outOptions: IStreamOptions<string, Out>): IAzureQueueStreams<In, Out>;
+    stream<In = AzureQueueOperation, Out = string>(operations: In | In[], inOptions?: IStreamOptions<In, AzureQueueOperation>, outOptions?: IStreamOptions<string, Out>): ReadableStream<string, Out>;
+    process<In = AzureQueueOperation, Out = string>(operations: In | In[], inOptions?: IStreamOptions<In, AzureQueueOperation>, outOptions?: IStreamOptions<string, Out>): Promise<void>;
+    enqueueMessages(queue: string, messages: string[] | object[]): Promise<void>;
+    enqueueMessage(queue: string, message: string | object): Promise<azs.QueueService.QueueMessageResult>;
+    dequeueMessages(queue: string, count?: number): Promise<azs.QueueService.QueueMessageResult[]>;
+    /** A Promise to create the queue if it doesn't exist. */
     createQueueIfNotExists(queue: string): Promise<azs.QueueService.QueueResult>;
+    /** Specify the encoding method ("base64" | "xml" | "binary"). */
     encoder: encoders;
-    constructor(obj: AzureQueueOptions);
 }
+export {};

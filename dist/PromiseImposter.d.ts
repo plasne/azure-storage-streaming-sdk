@@ -1,4 +1,4 @@
-declare type anyfunc = () => any | void | undefined;
+declare type anyfunc = (...args: any[]) => any | void | undefined;
 export default abstract class PromiseImposter {
     private events;
     resolve(...args: any[]): void;
@@ -6,5 +6,6 @@ export default abstract class PromiseImposter {
     then(resolve: anyfunc, reject?: anyfunc): this;
     catch(reject: anyfunc): this;
     finally(settled: anyfunc): this;
+    timeout(onevent: anyfunc, ms: number): this;
 }
 export {};

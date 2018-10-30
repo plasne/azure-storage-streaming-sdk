@@ -1,3 +1,5 @@
+didn't use streams because they buffer, increasing memory
+PromiseLike due to constraints with inheriting promises
 
 ```typescript
 // list the blobs via a streaming pattern
