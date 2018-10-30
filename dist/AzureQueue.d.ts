@@ -28,7 +28,8 @@ export default class AzureQueue {
     process<In = AzureQueueOperation, Out = string>(operations: In | In[], inOptions?: IStreamOptions<In, AzureQueueOperation>, outOptions?: IStreamOptions<string, Out>): Promise<void>;
     enqueueMessages(queue: string, messages: string[] | object[]): Promise<void>;
     enqueueMessage(queue: string, message: string | object): Promise<azs.QueueService.QueueMessageResult>;
-    dequeueMessages(queue: string, count?: number): Promise<azs.QueueService.QueueMessageResult[]>;
+    dequeueMessages(queue: string, count?: number, hiddenForSec?: number): Promise<azs.QueueService.QueueMessageResult[]>;
+    deleteMessage(queue: string, messageId: string, popReceipt: string): Promise<void>;
     /** A Promise to create the queue if it doesn't exist. */
     createQueueIfNotExists(queue: string): Promise<azs.QueueService.QueueResult>;
     /** Specify the encoding method ("base64" | "xml" | "binary"). */

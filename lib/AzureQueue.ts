@@ -92,7 +92,7 @@ export default class AzureQueue {
                 // perform specified operation
                 const op = streams.in.buffer.shift();
                 if (op) {
-                    switch (op.direction) {
+                    switch (op.type) {
                         case 'dequeue':
                             return this.dequeueMessages(op.queue, op.count)
                                 .then(result => {
@@ -100,9 +100,10 @@ export default class AzureQueue {
                                         if (pkg.messageText) {
                                             const out = streams.out.push(
                                                 pkg.messageText,
-                                                op
+                                                op,
+                                                pkg
                                             );
-                                            op.push(out);
+                                            op.push(out, pkg);
                                         }
                                     }
                                     op.resolve(result);
@@ -114,6 +115,23 @@ export default class AzureQueue {
                         case 'enqueue':
                             if (op.message) {
                                 return this.enqueueMessage(op.queue, op.message)
+                                    .then(result => {
+                                        streams.out.emit('success', result);
+                                        op.resolve(result);
+                                    })
+                                    .catch(error => {
+                                        streams.out.emit('error', error);
+                                        op.reject(error);
+                                    });
+                            }
+                            break;
+                        case 'delete':
+                            if (op.message) {
+                                return this.deleteMessage(
+                                    op.queue,
+                                    op.message.messageId,
+                                    op.message.popReceipt
+                                )
                                     .then(result => {
                                         streams.out.emit('success', result);
                                         op.resolve(result);
@@ -207,7 +225,11 @@ export default class AzureQueue {
         return createMessage(queue, toString);
     }
 
-    public dequeueMessages(queue: string, count: number = 1) {
+    public dequeueMessages(
+        queue: string,
+        count: number = 1,
+        hiddenForSec: number = 30
+    ) {
         const getMessages: (
             queue: string,
             options: azs.QueueService.GetMessagesRequestOptions
@@ -215,8 +237,20 @@ export default class AzureQueue {
             .promisify(azs.QueueService.prototype.getMessages)
             .bind(this.service);
         return getMessages(queue, {
-            numOfMessages: count
+            numOfMessages: count,
+            visibilityTimeout: hiddenForSec
         });
+    }
+
+    public deleteMessage(queue: string, messageId: string, popReceipt: string) {
+        const deleteMessage: (
+            queue: string,
+            messageId: string,
+            popReceipt: string
+        ) => Promise<void> = util
+            .promisify(azs.QueueService.prototype.deleteMessage)
+            .bind(this.service);
+        return deleteMessage(queue, messageId, popReceipt);
     }
 
     /** A Promise to create the queue if it doesn't exist. */
