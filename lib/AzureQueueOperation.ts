@@ -9,6 +9,7 @@ export default class AzureQueueOperation extends PromiseImposter {
     public queue: string;
     public message?: any;
     public count?: number;
+    public hiddenForSec?: number;
 
     /** This class designates an queue operation that can be queued, streamed, etc.
      * After creating an object, you may be alerted when its operation is complete using .then(),

@@ -86,7 +86,7 @@ class AzureQueue {
             if (op) {
                 switch (op.type) {
                     case 'dequeue':
-                        return this.dequeueMessages(op.queue, op.count)
+                        return this.dequeueMessages(op.queue, op.count, op.hiddenForSec)
                             .then(result => {
                             for (const pkg of result) {
                                 if (pkg.messageText) {
