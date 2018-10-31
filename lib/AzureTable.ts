@@ -14,7 +14,7 @@ export interface IAzureTableOptions {
     key?: string;
 }
 
-interface IAzureTableStreams<T, U> {
+export interface IAzureTableStreams<T, U> {
     in: WriteableStream<T, AzureTableOperation>;
     out: ReadableStream<any, U>;
 }

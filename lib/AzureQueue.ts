@@ -18,7 +18,7 @@ export interface IAzureQueueOptions {
     encoder?: encoders;
 }
 
-interface IAzureQueueStreams<T, U> {
+export interface IAzureQueueStreams<T, U> {
     in: WriteableStream<T, AzureQueueOperation>;
     out: ReadableStream<string, U>;
 }

@@ -11,7 +11,7 @@ export interface IAzureTableOptions {
     sas?: string;
     key?: string;
 }
-interface IAzureTableStreams<T, U> {
+export interface IAzureTableStreams<T, U> {
     in: WriteableStream<T, AzureTableOperation>;
     out: ReadableStream<any, U>;
 }
@@ -31,4 +31,3 @@ export default class AzureTable {
     /** A Promise to create the table if it doesn't exist. */
     createTableIfNotExists(table: string): Promise<azs.TableService.TableResult>;
 }
-export {};

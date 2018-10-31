@@ -11,7 +11,7 @@ export interface IAzureBlobOptions {
     sas?: string;
     key?: string;
 }
-interface IAzureBlobStreams<T, U> {
+export interface IAzureBlobStreams<T, U> {
     in: WriteableStream<T, AzureBlobOperation>;
     out: ReadableStream<any, U>;
 }
@@ -34,4 +34,3 @@ export default class AzureBlob {
     createContainerIfNotExists(container: string): Promise<azs.BlobService.ContainerResult>;
     private generateSignature;
 }
-export {};

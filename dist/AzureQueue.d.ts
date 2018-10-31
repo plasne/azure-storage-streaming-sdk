@@ -13,7 +13,7 @@ export interface IAzureQueueOptions {
     key?: string;
     encoder?: encoders;
 }
-interface IAzureQueueStreams<T, U> {
+export interface IAzureQueueStreams<T, U> {
     in: WriteableStream<T, AzureQueueOperation>;
     out: ReadableStream<string, U>;
 }
@@ -35,4 +35,3 @@ export default class AzureQueue {
     /** Specify the encoding method ("base64" | "xml" | "binary"). */
     encoder: encoders;
 }
-export {};

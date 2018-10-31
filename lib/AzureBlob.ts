@@ -18,7 +18,7 @@ export interface IAzureBlobOptions {
     key?: string;
 }
 
-interface IAzureBlobStreams<T, U> {
+export interface IAzureBlobStreams<T, U> {
     in: WriteableStream<T, AzureBlobOperation>;
     out: ReadableStream<any, U>;
 }
