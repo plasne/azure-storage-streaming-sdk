@@ -113,7 +113,7 @@ export default class AzureQueue {
                                     op.resolve(result);
                                 })
                                 .catch(error => {
-                                    streams.out.emit('error', error);
+                                    streams.out.emit('error', error, op);
                                     op.reject(error);
                                 });
                         case 'enqueue':
@@ -124,7 +124,7 @@ export default class AzureQueue {
                                         op.resolve(result);
                                     })
                                     .catch(error => {
-                                        streams.out.emit('error', error);
+                                        streams.out.emit('error', error, op);
                                         op.reject(error);
                                     });
                             }
@@ -141,7 +141,7 @@ export default class AzureQueue {
                                         op.resolve(result);
                                     })
                                     .catch(error => {
-                                        streams.out.emit('error', error);
+                                        streams.out.emit('error', error, op);
                                         op.reject(error);
                                     });
                             }

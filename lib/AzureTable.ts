@@ -179,20 +179,17 @@ export default class AzureTable {
                                         } else {
                                             streams.out.emit(
                                                 'error',
-                                                opresult.error
+                                                opresult.error,
+                                                op
                                             );
                                             op.reject(error);
                                         }
                                     }
                                     resolve(result);
                                 } else {
-                                    for (const operation of operations) {
-                                        streams.out.emit(
-                                            'error',
-                                            operation,
-                                            error
-                                        );
-                                        operation.reject('error', error);
+                                    for (const op of operations) {
+                                        streams.out.emit('error', error, op);
+                                        op.reject('error', error);
                                         reject(error);
                                     }
                                 }
@@ -226,7 +223,7 @@ export default class AzureTable {
                                     }
                                     resolve();
                                 } else {
-                                    streams.out.emit('error', error);
+                                    streams.out.emit('error', error, op);
                                     op.reject(error);
                                     reject(error);
                                 }
