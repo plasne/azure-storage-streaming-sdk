@@ -48,7 +48,7 @@ class AzureTable {
             throw new Error('You must specify service, connectionString, account/sas, or account/key.');
         }
     }
-    queryStream() {
+    streams() {
         // get arguments
         const inOptions = arguments[0] || {};
         const outOptions = arguments[1] || {};
@@ -201,9 +201,9 @@ class AzureTable {
         });
         return streams;
     }
-    query(operations, inOptions, outOptions) {
+    stream(operations, inOptions, outOptions) {
         // start the stream
-        const streams = this.queryStream(inOptions || {}, outOptions || {});
+        const streams = this.streams(inOptions || {}, outOptions || {});
         // push the operations
         if (Array.isArray(operations)) {
             for (const operation of operations) {
@@ -217,11 +217,11 @@ class AzureTable {
         streams.in.end();
         return streams.out;
     }
-    queryAsync(operations, inOptions, outOptions) {
+    process(operations, inOptions, outOptions) {
         return new Promise((resolve, reject) => {
             try {
                 // start commit
-                const stream = this.query(operations, inOptions, outOptions);
+                const stream = this.stream(operations, inOptions, outOptions);
                 // resolve when done
                 stream.once('end', () => {
                     resolve();

@@ -18,10 +18,10 @@ export interface IAzureTableStreams<T, U> {
 export default class AzureTable {
     service: azs.TableService;
     constructor(obj: IAzureTableOptions);
-    queryStream<In = AzureTableOperation, Out = any>(): IAzureTableStreams<In, Out>;
-    queryStream<In = AzureTableOperation, Out = any>(inOptions: IStreamOptions<In, AzureTableOperation>, outOptions: IStreamOptions<any, Out>): IAzureTableStreams<In, Out>;
-    query<In = AzureTableOperation, Out = any>(operations: In | In[], inOptions?: IStreamOptions<In, AzureTableOperation>, outOptions?: IStreamOptions<any, Out>): ReadableStream<any, Out>;
-    queryAsync<In = AzureTableOperation, Out = any>(operations: In | In[], inOptions?: IStreamOptions<In, AzureTableOperation>, outOptions?: IStreamOptions<any, Out>): Promise<void>;
+    streams<In = AzureTableOperation, Out = any>(): IAzureTableStreams<In, Out>;
+    streams<In = AzureTableOperation, Out = any>(inOptions: IStreamOptions<In, AzureTableOperation>, outOptions: IStreamOptions<any, Out>): IAzureTableStreams<In, Out>;
+    stream<In = AzureTableOperation, Out = any>(operations: In | In[], inOptions?: IStreamOptions<In, AzureTableOperation>, outOptions?: IStreamOptions<any, Out>): ReadableStream<any, Out>;
+    process<In = AzureTableOperation, Out = any>(operations: In | In[], inOptions?: IStreamOptions<In, AzureTableOperation>, outOptions?: IStreamOptions<any, Out>): Promise<void>;
     /** A Promise that will return true if the table is not empty. */
     hasEntities(table: string): Promise<boolean>;
     /** A Promise to insert an entity into the specified table. */

@@ -43,20 +43,20 @@ export default class AzureTable {
         }
     }
 
-    public queryStream<
-        In = AzureTableOperation,
-        Out = any
-    >(): IAzureTableStreams<In, Out>;
+    public streams<In = AzureTableOperation, Out = any>(): IAzureTableStreams<
+        In,
+        Out
+    >;
 
-    public queryStream<In = AzureTableOperation, Out = any>(
+    public streams<In = AzureTableOperation, Out = any>(
         inOptions: IStreamOptions<In, AzureTableOperation>,
         outOptions: IStreamOptions<any, Out>
     ): IAzureTableStreams<In, Out>;
 
-    public queryStream<
-        In = AzureTableOperation,
-        Out = any
-    >(): IAzureTableStreams<In, Out> {
+    public streams<In = AzureTableOperation, Out = any>(): IAzureTableStreams<
+        In,
+        Out
+    > {
         // get arguments
         const inOptions: IStreamOptions<In, AzureTableOperation> =
             arguments[0] || {};
@@ -245,13 +245,13 @@ export default class AzureTable {
         return streams;
     }
 
-    public query<In = AzureTableOperation, Out = any>(
+    public stream<In = AzureTableOperation, Out = any>(
         operations: In | In[],
         inOptions?: IStreamOptions<In, AzureTableOperation>,
         outOptions?: IStreamOptions<any, Out>
     ): ReadableStream<any, Out> {
         // start the stream
-        const streams = this.queryStream<In, Out>(
+        const streams = this.streams<In, Out>(
             inOptions || {},
             outOptions || {}
         );
@@ -270,7 +270,7 @@ export default class AzureTable {
         return streams.out;
     }
 
-    public queryAsync<In = AzureTableOperation, Out = any>(
+    public process<In = AzureTableOperation, Out = any>(
         operations: In | In[],
         inOptions?: IStreamOptions<In, AzureTableOperation>,
         outOptions?: IStreamOptions<any, Out>
@@ -278,7 +278,7 @@ export default class AzureTable {
         return new Promise<void>((resolve, reject) => {
             try {
                 // start commit
-                const stream = this.query(operations, inOptions, outOptions);
+                const stream = this.stream(operations, inOptions, outOptions);
 
                 // resolve when done
                 stream.once('end', () => {
