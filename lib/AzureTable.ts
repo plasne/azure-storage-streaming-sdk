@@ -208,20 +208,26 @@ export default class AzureTable {
                             op.token,
                             (error, result) => {
                                 if (!error) {
-                                    for (const entity of result.entries) {
-                                        const out = streams.out.push(
-                                            entity,
-                                            operations
-                                        );
-                                        op.push(out);
+                                    try {
+                                        for (const entity of result.entries) {
+                                            const out = streams.out.push(
+                                                entity,
+                                                operations
+                                            );
+                                            op.push(out);
+                                        }
+                                        if (result.continuationToken) {
+                                            op.token = result.continuationToken;
+                                            streams.in.buffer.push(op);
+                                        } else {
+                                            op.resolve();
+                                        }
+                                        resolve();
+                                    } catch (error) {
+                                        streams.out.emit('error', error, op);
+                                        op.reject(error);
+                                        reject(error);
                                     }
-                                    if (result.continuationToken) {
-                                        op.token = result.continuationToken;
-                                        streams.in.buffer.push(op);
-                                    } else {
-                                        op.resolve();
-                                    }
-                                    resolve();
                                 } else {
                                     streams.out.emit('error', error, op);
                                     op.reject(error);
