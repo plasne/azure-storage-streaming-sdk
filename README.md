@@ -1,6 +1,9 @@
 didn't use streams because they buffer, increasing memory
 PromiseLike due to constraints with inheriting promises
 
+test cases should cover failed transforms
+ensure consistent datatypes returned
+
 ```typescript
 // list the blobs via a streaming pattern
 public list<Out = azs.BlobService.BlobResult>(): ReadableStream<azs.BlobService.BlobResult, Out>;

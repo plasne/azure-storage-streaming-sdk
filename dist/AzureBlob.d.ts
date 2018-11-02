@@ -31,6 +31,11 @@ export default class AzureBlob {
     process<In = AzureBlobOperation, Out = any>(operations: In | In[], inOptions?: IStreamOptions<In, AzureBlobOperation>, outOptions?: IStreamOptions<any, Out>): Promise<void>;
     loadAsStream<Out = string>(container: string, prefix?: string, outOptions?: IStreamOptions<string, Out>): ReadableStream<string, Out>;
     listAsStream<Out = azs.BlobService.BlobResult>(container: string, prefix?: string, outOptions?: IStreamOptions<azs.BlobService.BlobResult, Out>): ReadableStream<azs.BlobService.BlobResult, Out>;
+    /** Gets information about the container. */
+    getContainerProperties(container: string): Promise<azs.BlobService.ContainerResult>;
+    /** Delete the container if it exists. */
+    deleteContainerIfExists(container: string): Promise<boolean>;
+    /** Create the container if it doesn't exist. */
     createContainerIfNotExists(container: string): Promise<azs.BlobService.ContainerResult>;
     private generateSignature;
 }

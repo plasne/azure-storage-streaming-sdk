@@ -140,13 +140,19 @@ class AzureTable {
                                 const opresult = result[i]; // TODO: make sure the results are always in order
                                 const op = operations[i];
                                 if (!opresult.error) {
-                                    if (isRetrieveBatch) {
-                                        streams.out.push(opresult.entity, operations[0]);
-                                        op.resolve(opresult.entity);
+                                    try {
+                                        if (isRetrieveBatch) {
+                                            streams.out.push(opresult.entity, operations[0]);
+                                            op.resolve(opresult.entity);
+                                        }
+                                        else {
+                                            streams.out.emit('success', opresult.response);
+                                            op.resolve(opresult.response);
+                                        }
                                     }
-                                    else {
-                                        streams.out.emit('success', opresult.response);
-                                        op.resolve(opresult.response);
+                                    catch (error) {
+                                        streams.out.emit('error', opresult.error, op);
+                                        op.reject(error);
                                     }
                                 }
                                 else {

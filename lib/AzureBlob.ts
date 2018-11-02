@@ -411,7 +411,27 @@ export default class AzureBlob {
         );
     }
 
-    // create the container if it doesn't already exist
+    /** Gets information about the container. */
+    public getContainerProperties(container: string) {
+        const getContainerProperties: (
+            container: string
+        ) => Promise<azs.BlobService.ContainerResult> = util
+            .promisify(azs.BlobService.prototype.getContainerProperties)
+            .bind(this.service);
+        return getContainerProperties(container);
+    }
+
+    /** Delete the container if it exists. */
+    public deleteContainerIfExists(container: string) {
+        const deleteContainerIfExists: (
+            container: string
+        ) => Promise<boolean> = util
+            .promisify(azs.BlobService.prototype.deleteContainerIfExists)
+            .bind(this.service);
+        return deleteContainerIfExists(container);
+    }
+
+    /** Create the container if it doesn't exist. */
     public createContainerIfNotExists(container: string) {
         const createContainerIfNotExists: (
             container: string
